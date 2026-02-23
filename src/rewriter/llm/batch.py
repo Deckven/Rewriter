@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import json
 import time
 from typing import Any
 
 import anthropic
+from anthropic.types.messages import batch_create_params
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
@@ -59,13 +59,13 @@ class BatchProcessor:
                 params["system"] = req["system"]
 
             batch_requests.append(
-                anthropic.types.batch_create_params.Request(
+                batch_create_params.Request(
                     custom_id=req["custom_id"],
                     params=params,
                 )
             )
 
-        batch = self.client.batches.create(requests=batch_requests)
+        batch = self.client.messages.batches.create(requests=batch_requests)
         console.print(f"[green]Batch submitted: {batch.id} ({len(requests)} requests)[/green]")
         return batch.id
 
@@ -84,7 +84,7 @@ class BatchProcessor:
             task = progress.add_task("Waiting for batch...", total=None)
 
             while True:
-                batch = self.client.batches.retrieve(batch_id)
+                batch = self.client.messages.batches.retrieve(batch_id)
                 status = batch.processing_status
 
                 progress.update(
@@ -112,7 +112,7 @@ class BatchProcessor:
         """Download and parse batch results."""
         results: dict[str, str] = {}
 
-        for event in self.client.batches.results(batch_id):
+        for event in self.client.messages.batches.results(batch_id):
             custom_id = event.custom_id
             if event.result.type == "succeeded":
                 message = event.result.message
@@ -148,12 +148,15 @@ class BatchProcessor:
         with Progress(
             SpinnerColumn(),
             TextColumn("[progress.description]{task.description}"),
+            TimeElapsedColumn(),
             console=console,
-            transient=True,
         ) as progress:
             task = progress.add_task("Processing...", total=len(requests))
-            for req in requests:
-                progress.update(task, description=f"Processing {req['custom_id']}...")
+            for i, req in enumerate(requests):
+                progress.update(
+                    task,
+                    description=f"Chunk {req['custom_id']} ({i+1}/{len(requests)})",
+                )
                 text = llm.complete(
                     system=req.get("system", ""),
                     messages=req["messages"],
@@ -163,5 +166,8 @@ class BatchProcessor:
                 )
                 results[req["custom_id"]] = text
                 progress.advance(task)
+                # Brief pause between requests to avoid rate limits
+                if i < len(requests) - 1:
+                    time.sleep(1)
 
         return results

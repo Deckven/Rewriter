@@ -13,8 +13,9 @@ from rewriter.config import Settings
 console = Console()
 
 # Retry config
-MAX_RETRIES = 5
-BASE_DELAY = 1.0
+MAX_RETRIES = 10
+BASE_DELAY = 2.0
+MAX_DELAY = 120.0
 
 
 class LLMClient:
@@ -70,16 +71,22 @@ class LLMClient:
                 response = self.client.messages.create(**kwargs)
                 self._track_usage(response.usage)
                 return self._extract_text(response)
-            except anthropic.RateLimitError:
-                delay = BASE_DELAY * (2 ** attempt)
+            except anthropic.RateLimitError as e:
+                delay = min(BASE_DELAY * (2 ** attempt), MAX_DELAY)
+                # Check for retry-after header
+                retry_after = getattr(e, 'response', None)
+                if retry_after and hasattr(retry_after, 'headers'):
+                    ra = retry_after.headers.get('retry-after')
+                    if ra:
+                        delay = max(delay, float(ra))
                 console.print(
                     f"[yellow]Rate limited. Retrying in {delay:.0f}s "
                     f"(attempt {attempt + 1}/{MAX_RETRIES})...[/yellow]"
                 )
                 time.sleep(delay)
             except anthropic.APIStatusError as e:
-                if e.status_code >= 500:
-                    delay = BASE_DELAY * (2 ** attempt)
+                if e.status_code >= 500 or e.status_code == 529:
+                    delay = min(BASE_DELAY * (2 ** attempt), MAX_DELAY)
                     console.print(
                         f"[yellow]Server error {e.status_code}. Retrying in {delay:.0f}s...[/yellow]"
                     )

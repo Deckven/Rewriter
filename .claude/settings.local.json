@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(source /Users/stanislavshulga/Documents/Rewriter/Rewriter/.venv/bin/activate && rewriter analyze --cost-estimate 2>&1)",
+      "Bash(source /Users/stanislavshulga/Documents/Rewriter/Rewriter/.venv/bin/activate && rewriter analyze --use-batch 2>&1)",
+      "Bash(source /Users/stanislavshulga/Documents/Rewriter/Rewriter/.venv/bin/activate && python3 -c \"\nimport anthropic\n# Check batches API\nc = anthropic.Anthropic\\(\\)\nprint\\(dir\\(c.batches\\)\\)\nprint\\('---'\\)\nprint\\(type\\(c.batches.create\\)\\)\n\" 2>&1 | head -10)",
+      "Bash(source /Users/stanislavshulga/Documents/Rewriter/Rewriter/.venv/bin/activate && python3 -c \"\nimport anthropic\nc = anthropic.Anthropic\\(\\)\n# Check for message_batches\nattrs = [a for a in dir\\(c\\) if 'batch' in a.lower\\(\\)]\nprint\\('batch-related:', attrs\\)\nprint\\('---'\\)\nprint\\(dir\\(c.messages\\)\\)\n\" 2>&1)",
+      "Bash(source /Users/stanislavshulga/Documents/Rewriter/Rewriter/.venv/bin/activate && pip install -e /Users/stanislavshulga/Documents/Rewriter/Rewriter -q 2>&1 | tail -3)"
     ]
   }
 }
