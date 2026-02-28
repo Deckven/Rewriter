@@ -30,6 +30,7 @@ class RewriteEngine:
         *,
         intensity: str | None = None,
         n_examples: int | None = None,
+        extra_examples: list[str] | None = None,
         preserve_structure: bool | None = None,
         temperature: float | None = None,
         verbose: bool = False,
@@ -40,6 +41,7 @@ class RewriteEngine:
             text: Input text to rewrite.
             intensity: Rewrite depth (light/medium/full).
             n_examples: Number of few-shot examples.
+            extra_examples: Additional example texts provided by the user.
             preserve_structure: Keep original structure.
             temperature: Sampling temperature.
             verbose: Print debug info.
@@ -62,6 +64,12 @@ class RewriteEngine:
 
         # Select examples
         examples = self._select_examples(text, n_examples, verbose=verbose)
+
+        # Prepend user-provided examples
+        if extra_examples:
+            if verbose:
+                console.print(f"[dim]Adding {len(extra_examples)} user-provided example(s)[/dim]")
+            examples = extra_examples + examples
 
         # Build prompts
         system_prompt = build_system_prompt(style_guide_md, intensity)

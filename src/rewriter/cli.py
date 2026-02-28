@@ -175,6 +175,12 @@ def analyze(
 @click.option("--preserve-structure", "-p", is_flag=True, help="Preserve original structure")
 @click.option("--temperature", type=float, default=None, help="Sampling temperature")
 @click.option("--n-examples", "-n", type=int, default=None, help="Number of few-shot examples")
+@click.option(
+    "--example-file", "-e",
+    type=click.Path(exists=True, path_type=Path),
+    multiple=True,
+    help="Extra example text file (can be repeated)",
+)
 @click.option("--output", "-o", type=click.Path(path_type=Path), help="Output file")
 @click.pass_context
 def rewrite(
@@ -185,6 +191,7 @@ def rewrite(
     preserve_structure: bool,
     temperature: float | None,
     n_examples: int | None,
+    example_file: tuple[Path, ...],
     output: Path | None,
 ) -> None:
     """Rewrite text in the blog's style.
@@ -214,11 +221,23 @@ def rewrite(
     store = CorpusStore(settings.db_path)
 
     try:
+        # Load user-provided example texts
+        extra_examples: list[str] | None = None
+        if example_file:
+            extra_examples = []
+            for ef in example_file:
+                content = ef.read_text(encoding="utf-8").strip()
+                if content:
+                    extra_examples.append(content)
+                    if verbose:
+                        console.print(f"[dim]Loaded example: {ef.name} ({len(content)} chars)[/dim]")
+
         engine = RewriteEngine(settings, store)
         result = engine.rewrite(
             input_text,
             intensity=intensity,
             n_examples=n_examples,
+            extra_examples=extra_examples or None,
             preserve_structure=preserve_structure or None,
             temperature=temperature,
             verbose=verbose,
