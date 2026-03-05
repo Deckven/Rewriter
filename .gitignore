@@ -1,6 +1,4 @@
 # Runtime data
-data/
-*.db
 
 # Blog exports
 blog_articles/
@@ -32,4 +30,3 @@ venv/
 Thumbs.db
 
 # Models
-*.pkl
