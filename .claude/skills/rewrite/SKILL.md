@@ -1,37 +1,46 @@
 ---
 name: rewrite
-description: Batch rewrite files from input_resources/ to output_results/ using the rewriter CLI
+description: Rewrite text in the blog's style using the style guide directly (no API key needed)
 user-invocable: true
 allowed-tools:
-  - Bash
-  - Glob
   - Read
+  - Write
+  - Glob
 ---
 
-# Batch Rewrite Skill
+# Rewrite Skill
 
-Rewrite all source files from `input_resources/` using the `rewriter rewrite` CLI and save results to `output_results/`.
+Rewrite text in the style of the gaming blog "Блог казуального геймера", using the style guide at `data/style_guide.md`.
 
 ## Instructions
 
-1. **Parse intensity from `$ARGUMENTS`.**
-   - The first argument is the rewrite intensity: `light`, `medium`, or `full`.
-   - If `$ARGUMENTS` is empty or does not contain a valid intensity, ask the user which intensity to use (light / medium / full).
+1. **Read the style guide.**
+   - Read `data/style_guide.md` to load the blog's voice, tone, lexicon, and formatting rules.
 
-2. **Discover input files.**
-   - Use Glob to find all `*.txt` and `*.md` files in `input_resources/`.
-   - If no files are found, inform the user: "No .txt or .md files found in input_resources/. Add files and try again." Then stop.
+2. **Determine input.**
+   - If `$ARGUMENTS` contains inline text (quoted or not), use it directly as input.
+   - If `$ARGUMENTS` contains a file path, read that file.
+   - If `$ARGUMENTS` is empty, look for `*.txt` and `*.md` files in `input_resources/`. If multiple files found, process each one and save results to `output_results/` with the same filename.
+   - If no input found at all, ask the user to provide text or a file.
 
-3. **Rewrite each file.**
-   - For each discovered file, run:
-     ```
-     source .venv/bin/activate && rewriter rewrite "<file_path>" --intensity <intensity> --output "output_results/<filename>"
-     ```
-   - After each file, report whether it succeeded or failed.
+3. **Parse options from `$ARGUMENTS`.**
+   - `light` / `medium` / `full` — rewrite intensity. Default: `medium`.
+     - **light**: minimal changes — adjust tone and individual phrases, keep structure intact.
+     - **medium**: noticeable stylization — rewrite sentences in blog style, adapt lexicon and rhythm, keep overall structure.
+     - **full**: deep rewrite — freely restructure, add blog-typical elements (intro, transitions, conclusion).
 
-4. **Print summary.**
-   - List total files processed, how many succeeded, and how many failed.
-   - Example:
-     ```
-     Rewrite complete: 3/3 succeeded (intensity: medium)
-     ```
+4. **Rewrite the text.**
+   Apply the style guide rules:
+   - Use gaming slang naturally where appropriate (but match the source material's domain — don't force WoW jargon into EVE Online text, etc.)
+   - Maintain factual accuracy — do not add or remove information
+   - Write in Russian
+   - Use short paragraphs (2-4 sentences), vary sentence length
+   - Apply bold for game names, key terms, important numbers
+   - Use characteristic phrases and transitions from the style guide
+   - Add a personal, friendly-expert tone — not dry facts, not vulgar
+   - Do NOT use profanity or vulgar expressions — convey emotion through irony, metaphors, and tone
+   - End with a signature phrase like "Такие дела.", "Оставайтесь на линии." or similar
+
+5. **Output the result.**
+   - If processing a single text/file from arguments, output the rewritten text directly.
+   - If batch-processing `input_resources/`, save each result to `output_results/<filename>` using Write, and print a summary.
